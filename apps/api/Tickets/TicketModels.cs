@@ -1,3 +1,4 @@
+using Api.Ratings;
 using Api.Sla;
 using Api.Users;
 
@@ -39,7 +40,8 @@ public sealed record TicketDetail(
     IReadOnlyList<string> AllowedStatuses,
     SlaStatus Sla,
     IReadOnlyList<CommentView> Comments,
-    IReadOnlyList<EventView> Events);
+    IReadOnlyList<EventView> Events,
+    RatingView? Rating);
 
 public sealed record CreateTicketRequest(string? Title, string? Description, string? Category, string? Priority);
 
@@ -71,9 +73,9 @@ public sealed class TicketRow
     public TicketSummary ToSummary(SlaStatus sla) => new(
         Id, Number, Title, Status, Priority, Category, Requester, Assignee, CreatedAt, UpdatedAt, ResolvedAt, sla);
 
-    public TicketDetail ToDetail(SlaStatus sla, IReadOnlyList<CommentView> comments, IReadOnlyList<EventView> events) => new(
+    public TicketDetail ToDetail(SlaStatus sla, IReadOnlyList<CommentView> comments, IReadOnlyList<EventView> events, RatingView? rating) => new(
         Id, Number, Title, Description, Status, Priority, Category, Requester, Assignee,
-        CreatedAt, UpdatedAt, ResolvedAt, TicketRules.AllowedTargets(Status), sla, comments, events);
+        CreatedAt, UpdatedAt, ResolvedAt, TicketRules.AllowedTargets(Status), sla, comments, events, rating);
 }
 
 public sealed class CommentRow

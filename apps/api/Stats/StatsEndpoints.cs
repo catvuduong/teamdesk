@@ -33,6 +33,18 @@ public static class StatsEndpoints
         app.MapGet("/stats/sla", GetSlaStats)
             .RequireAuthorization(AuthSetup.StaffPolicy)
             .RequireDatabase();
+        app.MapGet("/stats/csat", GetCsatStats)
+            .RequireAuthorization(AuthSetup.StaffPolicy)
+            .RequireDatabase();
+    }
+
+    /// <summary>Customer satisfaction: the average and distribution of every rating, and the weekly trend.</summary>
+    private static async Task<IResult> GetCsatStats(Db db)
+    {
+        await using var conn = await db.OpenAsync();
+        var ratings = await conn.QueryAsync<RatingSampleRow>("SELECT score, created_at FROM ratings");
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return Results.Ok(Csat.Summarize(ratings.Select(r => (r.CreatedAt, r.Score)), today));
     }
 
     /// <summary>Breach rate per priority: the share of tickets whose SLA is breached now or was breached when they closed.</summary>
@@ -140,6 +152,12 @@ public static class StatsEndpoints
     {
         public string Key { get; set; } = "";
         public int Count { get; set; }
+    }
+
+    private sealed class RatingSampleRow
+    {
+        public int Score { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     private sealed class DayRow

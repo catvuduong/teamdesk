@@ -75,12 +75,61 @@ export interface EventView {
   createdAt: string
 }
 
+export interface RatingView {
+  ticketId: number
+  score: number
+  comment: string | null
+  createdAt: string
+}
+
 export interface TicketDetail extends TicketSummary {
   description: string
   resolvedAt: string | null
   allowedStatuses: Status[]
   comments: CommentView[]
   events: EventView[]
+  rating: RatingView | null
+}
+
+export interface ArticleSummary {
+  id: number
+  slug: string
+  title: string
+  category: string
+  excerpt: string
+  views: number
+  updatedAt: string
+}
+
+export interface ArticleDetail {
+  id: number
+  slug: string
+  title: string
+  body: string
+  category: string
+  published: boolean
+  views: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ScoreCount {
+  score: number
+  count: number
+}
+
+export interface CsatWeek {
+  /** Monday of the week, yyyy-mm-dd, in UTC */
+  weekStart: string
+  count: number
+  average: number | null
+}
+
+export interface CsatStats {
+  count: number
+  average: number | null
+  distribution: ScoreCount[]
+  trend: CsatWeek[]
 }
 
 export interface DayCount {

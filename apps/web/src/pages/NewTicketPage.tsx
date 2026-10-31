@@ -1,11 +1,15 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { AppShell } from '../components/AppShell'
 import { Link } from '../components/Link'
 import { ApiError, api } from '../lib/api'
 import { CATEGORIES, PRIORITIES, PRIORITY_LABEL } from '../lib/constants'
 import { messageOf } from '../lib/errors'
 import { navigate } from '../lib/router'
-import type { NewTicket } from '../lib/types'
+import type { ArticleSummary, NewTicket } from '../lib/types'
+
+/** Suggestions wait for a short pause in typing, and need a title long enough to match on. */
+const SUGGEST_DELAY_MS = 300
+const SUGGEST_MIN_LENGTH = 3
 
 const EMPTY_FORM: NewTicket = {
   title: '',
@@ -19,6 +23,31 @@ export function NewTicketPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [suggestions, setSuggestions] = useState<ArticleSummary[]>([])
+
+  useEffect(() => {
+    const title = form.title.trim()
+    if (title.length < SUGGEST_MIN_LENGTH) {
+      setSuggestions([])
+      return
+    }
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      api
+        .suggestArticles(title)
+        .then((items) => {
+          if (!cancelled) setSuggestions(items)
+        })
+        .catch(() => {
+          // Suggestions are a convenience: a failed lookup must never block the form
+          if (!cancelled) setSuggestions([])
+        })
+    }, SUGGEST_DELAY_MS)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [form.title])
 
   function update<K extends keyof NewTicket>(key: K, value: NewTicket[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -81,6 +110,29 @@ export function NewTicketPage() {
             <p id="ticket-title-error" className="field-error">
               {errors.title}
             </p>
+          )}
+          {suggestions.length > 0 && (
+            <section className="suggestions" aria-labelledby="suggestions-title" aria-live="polite">
+              <h2 id="suggestions-title" className="suggestions-title">
+                These articles may already answer it
+              </h2>
+              <p className="muted">They open in a new tab, so your draft stays here.</p>
+              <ul>
+                {suggestions.map((article) => (
+                  <li key={article.id}>
+                    <a
+                      href={`/kb/${article.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="ticket-suggestion"
+                    >
+                      {article.title}
+                    </a>
+                    <span className="muted"> {article.excerpt}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </div>
 

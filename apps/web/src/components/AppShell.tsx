@@ -16,6 +16,7 @@ const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', match: (p) => p === '/dashboard', staffOnly: true },
   { to: '/tickets', label: 'Tickets', match: (p) => p === '/tickets' || (p.startsWith('/tickets/') && p !== '/tickets/new') },
   { to: '/tickets/new', label: 'New ticket', match: (p) => p === '/tickets/new' },
+  { to: '/kb', label: 'Help center', match: (p) => p === '/kb' || p.startsWith('/kb/') },
   { to: '/sla', label: 'SLA', match: (p) => p === '/sla', staffOnly: true },
   { to: '/users', label: 'Users', match: (p) => p === '/users', staffOnly: true },
 ]

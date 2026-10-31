@@ -35,9 +35,14 @@ export function homeFor(user: PublicUser): string {
   return user.role === 'customer' ? '/tickets' : '/dashboard'
 }
 
+/** The public help centre: visitors without an account can read it. */
+export function isHelpPath(pathname: string): boolean {
+  return pathname === '/kb' || pathname.startsWith('/kb/')
+}
+
 /** Where to send the visitor instead of the requested path, or null when the path is fine. */
 export function redirectFor(user: PublicUser | null, pathname: string): string | null {
-  if (!user) return pathname === '/login' ? null : '/login'
+  if (!user) return pathname === '/login' || isHelpPath(pathname) ? null : '/login'
   if (pathname === '/login' || pathname === '/') return homeFor(user)
   if (user.role === 'customer' && (pathname === '/dashboard' || pathname === '/users' || pathname === '/sla')) return '/tickets'
   return null

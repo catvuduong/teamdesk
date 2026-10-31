@@ -40,4 +40,51 @@ body { margin: 0; }
 .sla-chart .axis-text, .sla-chart .bar-label { fill: var(--sla-muted); font-size: 12px; }
 .sla-chart .bar-label { fill: currentColor; }
 .sla-chart .bar-breach { fill: var(--sla-bar); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only, .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Knowledge base: search, result cards and the article page. */
+.kb-search { display: flex; gap: 0.5rem; margin: 1rem 0; }
+.kb-search input { flex: 1; min-width: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--sla-grid); border-radius: 6px; font: inherit; background: transparent; color: inherit; }
+.kb-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0.75rem; }
+.kb-card { display: flex; flex-direction: column; gap: 0.35rem; text-decoration: none; color: inherit; }
+.kb-card-title { font-weight: 600; font-size: 1.05rem; }
+.kb-card-meta { font-size: 0.85em; }
+.article { max-width: 72ch; margin: 0 auto; }
+.article-head h1 { margin-top: 0; }
+.article-footer { margin-top: 1rem; }
+.markdown { line-height: 1.6; }
+.markdown pre { overflow-x: auto; padding: 0.75rem; border-radius: 6px; background: color-mix(in srgb, currentColor 8%, transparent); }
+.markdown blockquote { margin: 0; padding-left: 1rem; border-left: 3px solid var(--sla-grid); color: var(--sla-muted); }
+.markdown code { font-family: ui-monospace, monospace; font-size: 0.9em; }
+
+/* New-ticket suggestions, shown under the title field. */
+.suggestions { margin-top: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--sla-grid); border-radius: 8px; }
+.suggestions-title { font-size: 0.95rem; margin: 0 0 0.25rem; }
+.suggestions ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+.suggestions li + li { margin-top: 0.35rem; }
+
+/* Rating prompt and result on a ticket. */
+.rating-scale { border: 0; margin: 0 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.rating-option { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; border: 1px solid var(--sla-grid); border-radius: 999px; cursor: pointer; }
+.rating-option.selected { border-color: var(--sla-bar); color: var(--sla-bar); font-weight: 600; }
+.rating-note { font-style: italic; }
+
+/* Customer satisfaction card on the dashboard. One series, so one hue: --sla-bar. */
+.csat-body { display: flex; flex-wrap: wrap; gap: 2rem; align-items: flex-start; }
+.csat-summary { min-width: 9rem; }
+.csat-average { font-size: 2.75rem; font-weight: 700; margin: 0; line-height: 1; }
+.csat-out-of { font-size: 1rem; font-weight: 400; color: var(--sla-muted); }
+.csat-distribution { flex: 1; min-width: 14rem; }
+.csat-subtitle { font-size: 0.9rem; font-weight: 600; margin: 0 0 0.5rem; }
+.csat .bars { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.4rem; }
+.csat .bar-row { display: grid; grid-template-columns: 4.5rem 1fr 2.5rem; align-items: center; gap: 0.5rem; }
+.csat .bar-track { display: block; height: 10px; border-radius: 999px; background: var(--sla-grid); overflow: hidden; }
+.csat .bar-fill { display: block; height: 100%; border-radius: 999px; }
+.csat-fill { background: var(--sla-bar); }
+.csat .bar-value { text-align: right; font-variant-numeric: tabular-nums; }
+.csat-chart { margin: 1.25rem 0 0; }
+.csat-chart .grid-line { stroke: var(--sla-grid); }
+.csat-chart .axis-text { fill: var(--sla-muted); font-size: 12px; }
+.csat-chart .bar-label { fill: currentColor; font-size: 13px; font-weight: 600; }
+.csat-chart .trend-line { stroke: var(--sla-bar); stroke-width: 2; }
+.csat-chart .trend-point { fill: var(--sla-bar); }
