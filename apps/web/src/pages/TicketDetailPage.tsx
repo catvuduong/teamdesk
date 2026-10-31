@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { AppShell } from '../components/AppShell'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Link } from '../components/Link'
+import { RatingPanel } from '../components/RatingPanel'
 import { SlaBadge } from '../components/SlaBadge'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { ApiError, api } from '../lib/api'
@@ -149,6 +150,12 @@ export function TicketDetailPage({ id }: TicketDetailPageProps) {
             </h2>
             <p className="prose">{ticket.description}</p>
           </section>
+
+          <RatingPanel
+            ticket={ticket}
+            isRequester={user?.id === ticket.requester.id}
+            onRated={(rating) => setTicket((current) => (current ? { ...current, rating } : current))}
+          />
 
           <section className="card" aria-labelledby="conversation-title">
             <h2 id="conversation-title" className="card-title">

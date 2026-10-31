@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AppShell } from '../components/AppShell'
+import { CsatCard } from '../components/CsatCard'
+import { CsatPanel } from '../components/CsatPanel'
 import { ErrorState, Loading } from '../components/States'
 import { KpiCard } from '../components/KpiCard'
 import { PriorityBreakdown } from '../components/PriorityBreakdown'
@@ -76,6 +78,11 @@ export function DashboardPage() {
               </section>
             </div>
             <PriorityBreakdown counts={stats.byPriority} />
+            <CsatCard />
+
+            <div className="span-2">
+              <CsatPanel />
+            </div>
 
             <section className="card" aria-labelledby="agents-title">
               <h2 id="agents-title" className="card-title">

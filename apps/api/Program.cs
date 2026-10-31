@@ -2,6 +2,8 @@ using Api;
 using Api.Auth;
 using Microsoft.AspNetCore.HttpOverrides;
 using Api.Comments;
+using Api.Kb;
+using Api.Ratings;
 using Api.Seed;
 using Api.Stats;
 using Api.Tickets;
@@ -42,14 +44,16 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Text("teamdesk API (ASP.NET Core). Endpoints: GET /health, POST /auth/register, POST /auth/login, GET /me, GET|POST /tickets, GET /tickets/export.csv, GET|PATCH /tickets/{id}, POST /tickets/{id}/comments, GET /users, GET /stats, GET /stats/sla"));
+app.MapGet("/", () => Results.Text("teamdesk API (ASP.NET Core). Endpoints: GET /health, POST /auth/register, POST /auth/login, GET /me, GET|POST /tickets, GET /tickets/export.csv, GET|PATCH /tickets/{id}, POST /tickets/{id}/comments, POST /tickets/{id}/rating, GET /users, GET /stats, GET /stats/sla, GET /stats/csat, GET /kb, GET /kb/suggest, GET /kb/{slug}, POST /kb/articles, PATCH /kb/articles/{id}"));
 app.MapGet("/health", async (Db db) => Results.Ok(new { status = "ok", db = await db.StatusAsync() }));
 
 app.MapAuthEndpoints();
 app.MapTicketEndpoints();
 app.MapCommentEndpoints();
+app.MapRatingEndpoints();
 app.MapUserEndpoints();
 app.MapStatsEndpoints();
+app.MapKnowledgeEndpoints();
 
 // Demo data is optional: a failure is logged, not fatal, so the API still starts while the database is unavailable
 var db = app.Services.GetRequiredService<Db>();
@@ -58,6 +62,7 @@ if (db.Enabled)
     try
     {
         await DemoSeed.EnsureAsync(db);
+        await KnowledgeSeed.EnsureAsync(db);
     }
     catch (Exception ex)
     {

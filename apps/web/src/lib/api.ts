@@ -1,4 +1,17 @@
-import type { NewTicket, PublicUser, Role, SlaStats, Stats, TicketDetail, TicketPage, TicketPatch } from './types'
+import type {
+  ArticleDetail,
+  ArticleSummary,
+  CsatStats,
+  NewTicket,
+  PublicUser,
+  RatingView,
+  Role,
+  SlaStats,
+  Stats,
+  TicketDetail,
+  TicketPage,
+  TicketPatch,
+} from './types'
 import { readToken } from './session'
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
@@ -76,6 +89,23 @@ export const api = {
 
   addComment: (id: number, body: string, internal: boolean) =>
     request<unknown>('POST', `/tickets/${id}/comments`, { body, internal }),
+
+  rateTicket: (id: number, score: number, comment: string) =>
+    request<RatingView>('POST', `/tickets/${id}/rating`, { score, comment }),
+
+  listArticles: (q: string, category: string) => {
+    const params = new URLSearchParams()
+    if (q.trim()) params.set('q', q.trim())
+    if (category) params.set('category', category)
+    const search = params.toString()
+    return request<ArticleSummary[]>('GET', `/kb${search ? `?${search}` : ''}`)
+  },
+
+  getArticle: (slug: string) => request<ArticleDetail>('GET', `/kb/${encodeURIComponent(slug)}`),
+
+  suggestArticles: (title: string) => request<ArticleSummary[]>('GET', `/kb/suggest?${new URLSearchParams({ q: title })}`),
+
+  csatStats: () => request<CsatStats>('GET', '/stats/csat'),
 
   listUsers: (role?: Role) => request<PublicUser[]>('GET', role ? `/users?role=${role}` : '/users'),
 

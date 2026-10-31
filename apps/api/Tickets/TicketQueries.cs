@@ -1,4 +1,5 @@
 using Api.Auth;
+using Api.Ratings;
 using Api.Sla;
 using Dapper;
 using Npgsql;
@@ -129,11 +130,15 @@ public static class TicketQueries
             """,
             new { id });
 
+        var rating = await conn.QuerySingleOrDefaultAsync<RatingRow>(
+            "SELECT ticket_id, score, comment, created_at FROM ratings WHERE ticket_id = @id", new { id });
+
         var policies = await SlaQueries.PoliciesAsync(conn);
         return ticket.ToDetail(
             SlaOf(ticket, policies, now),
             comments.Select(c => c.ToView()).ToList(),
-            events.Select(e => e.ToView()).ToList());
+            events.Select(e => e.ToView()).ToList(),
+            rating?.ToView());
     }
 
     public static Task AddEventAsync(NpgsqlConnection conn, NpgsqlTransaction? tx, int ticketId, int actorId, string type, string detail, DateTime now) =>

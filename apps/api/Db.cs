@@ -80,6 +80,27 @@ public sealed class Db
             AS v (priority, first_response_hours, resolution_hours)
         WHERE NOT EXISTS (SELECT 1 FROM sla_policies)
         """,
+        """
+        CREATE TABLE IF NOT EXISTS articles (
+            id serial PRIMARY KEY,
+            slug text NOT NULL UNIQUE,
+            title text NOT NULL,
+            body text NOT NULL,
+            category text NOT NULL,
+            published boolean NOT NULL DEFAULT false,
+            views int NOT NULL DEFAULT 0,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS ratings (
+            ticket_id int PRIMARY KEY REFERENCES tickets (id) ON DELETE CASCADE,
+            score int NOT NULL CHECK (score BETWEEN 1 AND 5),
+            comment text NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+        )
+        """,
     ];
 
     /// <summary>One schema run per database per process. Each host builds its own <see cref="Db"/>, so this must be static.</summary>
