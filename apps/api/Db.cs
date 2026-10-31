@@ -10,11 +10,69 @@ namespace Api;
 public sealed class Db
 {
     private static readonly string[] Schema = [
-        // "CREATE TABLE IF NOT EXISTS items (id serial PRIMARY KEY, name text NOT NULL)",
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id serial PRIMARY KEY,
+            name text NOT NULL,
+            email text NOT NULL UNIQUE,
+            password_hash text NOT NULL,
+            role text NOT NULL CHECK (role IN ('customer', 'agent', 'admin')),
+            created_at timestamptz NOT NULL DEFAULT now()
+        )
+        """,
+        "CREATE SEQUENCE IF NOT EXISTS ticket_number_seq START 1001",
+        """
+        CREATE TABLE IF NOT EXISTS tickets (
+            id serial PRIMARY KEY,
+            number int NOT NULL UNIQUE,
+            title text NOT NULL,
+            description text NOT NULL,
+            status text NOT NULL CHECK (status IN ('open', 'in_progress', 'waiting', 'resolved', 'closed')),
+            priority text NOT NULL CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+            category text NOT NULL,
+            requester_id int NOT NULL REFERENCES users (id),
+            assignee_id int NULL REFERENCES users (id),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            resolved_at timestamptz NULL
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS tickets_status_idx ON tickets (status)",
+        "CREATE INDEX IF NOT EXISTS tickets_requester_idx ON tickets (requester_id)",
+        "CREATE INDEX IF NOT EXISTS tickets_assignee_idx ON tickets (assignee_id)",
+        "CREATE INDEX IF NOT EXISTS tickets_created_idx ON tickets (created_at)",
+        """
+        CREATE TABLE IF NOT EXISTS comments (
+            id serial PRIMARY KEY,
+            ticket_id int NOT NULL REFERENCES tickets (id) ON DELETE CASCADE,
+            author_id int NOT NULL REFERENCES users (id),
+            body text NOT NULL,
+            internal boolean NOT NULL DEFAULT false,
+            created_at timestamptz NOT NULL DEFAULT now()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS comments_ticket_idx ON comments (ticket_id)",
+        """
+        CREATE TABLE IF NOT EXISTS ticket_events (
+            id serial PRIMARY KEY,
+            ticket_id int NOT NULL REFERENCES tickets (id) ON DELETE CASCADE,
+            actor_id int NOT NULL REFERENCES users (id),
+            type text NOT NULL,
+            detail text NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ticket_events_ticket_idx ON ticket_events (ticket_id)",
     ];
 
     private readonly NpgsqlDataSource? _source;
     private Task? _ready;
+
+    static Db()
+    {
+        // Dapper maps snake_case columns (created_at) onto PascalCase members (CreatedAt)
+        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+    }
 
     public Db()
     {
