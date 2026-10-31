@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Npgsql;
 
 namespace Api;
@@ -63,10 +64,29 @@ public sealed class Db
         )
         """,
         "CREATE INDEX IF NOT EXISTS ticket_events_ticket_idx ON ticket_events (ticket_id)",
+        """
+        CREATE TABLE IF NOT EXISTS sla_policies (
+            priority text PRIMARY KEY CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+            first_response_hours int NOT NULL CHECK (first_response_hours > 0),
+            resolution_hours int NOT NULL CHECK (resolution_hours > 0)
+        )
+        """,
+        // Defaults only, and only while the table is empty: a populated table is never written at startup, so
+        // concurrent processes do not contend for its rows and operator-changed targets are kept
+        """
+        INSERT INTO sla_policies (priority, first_response_hours, resolution_hours)
+        SELECT v.priority, v.first_response_hours, v.resolution_hours
+        FROM (VALUES ('urgent', 1, 4), ('high', 4, 24), ('medium', 8, 48), ('low', 24, 120))
+            AS v (priority, first_response_hours, resolution_hours)
+        WHERE NOT EXISTS (SELECT 1 FROM sla_policies)
+        """,
     ];
 
+    /// <summary>One schema run per database per process. Each host builds its own <see cref="Db"/>, so this must be static.</summary>
+    private static readonly ConcurrentDictionary<string, Task> SchemaRuns = new();
+
     private readonly NpgsqlDataSource? _source;
-    private Task? _ready;
+    private readonly string? _url;
 
     static Db()
     {
@@ -77,7 +97,8 @@ public sealed class Db
     public Db()
     {
         var url = Environment.GetEnvironmentVariable("DATABASE_URL");
-        _source = string.IsNullOrWhiteSpace(url) ? null : NpgsqlDataSource.Create(ToConnectionString(url));
+        _url = string.IsNullOrWhiteSpace(url) ? null : url;
+        _source = _url is null ? null : NpgsqlDataSource.Create(ToConnectionString(_url));
     }
 
     public bool Enabled => _source is not null;
@@ -105,13 +126,13 @@ public sealed class Db
         }
     }
 
-    private Task EnsureSchemaAsync() => _ready ??= RunSchemaAsync();
+    private Task EnsureSchemaAsync() => SchemaRuns.GetOrAdd(_url!, _ => RunSchemaAsync(_source!, _url!));
 
-    private async Task RunSchemaAsync()
+    private static async Task RunSchemaAsync(NpgsqlDataSource source, string url)
     {
         try
         {
-            await using var conn = await _source!.OpenConnectionAsync();
+            await using var conn = await source.OpenConnectionAsync();
             await using var tx = await conn.BeginTransactionAsync();
             await new NpgsqlCommand("SELECT pg_advisory_xact_lock(727274)", conn, tx).ExecuteNonQueryAsync();
             foreach (var statement in Schema)
@@ -120,7 +141,7 @@ public sealed class Db
         }
         catch
         {
-            _ready = null; // retry on the next call
+            SchemaRuns.TryRemove(url, out _); // retry on the next call
             throw;
         }
     }

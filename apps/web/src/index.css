@@ -1,2 +1,43 @@
 :root { color-scheme: light dark; }
 body { margin: 0; }
+
+/* SLA: badges, countdowns, quick filters and the breach chart. Colors are tokens so dark mode can redefine them. */
+:root {
+  --sla-ok: #1f7a4d;
+  --sla-risk: #b26a00;
+  --sla-breach: #b42318;
+  --sla-bar: #3b5bdb;
+  --sla-grid: #d0d5dd;
+  --sla-muted: #667085;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sla-ok: #6ce9a6;
+    --sla-risk: #fdb022;
+    --sla-breach: #ff8a80;
+    --sla-bar: #8ea9ff;
+    --sla-grid: #3a4150;
+    --sla-muted: #98a2b3;
+  }
+}
+:root[data-theme="dark"] {
+  --sla-ok: #6ce9a6;
+  --sla-risk: #fdb022;
+  --sla-breach: #ff8a80;
+  --sla-bar: #8ea9ff;
+  --sla-grid: #3a4150;
+  --sla-muted: #98a2b3;
+}
+.sla { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sla-on_track { color: var(--sla-ok); }
+.sla-at_risk { color: var(--sla-risk); }
+.sla-breached { color: var(--sla-breach); }
+.sla-countdown { color: var(--sla-muted); font-size: 0.85em; }
+.chip-row { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
+.chip { border: 1px solid var(--sla-grid); border-radius: 999px; background: none; padding: 0.25rem 0.75rem; cursor: pointer; color: inherit; }
+.chip.active { border-color: var(--sla-bar); color: var(--sla-bar); font-weight: 600; }
+.sla-chart .grid-line { stroke: var(--sla-grid); }
+.sla-chart .axis-text, .sla-chart .bar-label { fill: var(--sla-muted); font-size: 12px; }
+.sla-chart .bar-label { fill: currentColor; }
+.sla-chart .bar-breach { fill: var(--sla-bar); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

@@ -1,3 +1,5 @@
+using Api.Sla;
+
 namespace Api.Tickets;
 
 /// <summary>Validation, sort orders and paging for the ticket list. Pure: unit-tested without a database.</summary>
@@ -26,15 +28,16 @@ public static class TicketListRules
 
     /// <summary>
     /// Validates the query string. <paramref name="assignee"/> is "unassigned" or a user id.
-    /// Returns field errors (empty when valid).
+    /// <paramref name="sla"/> is "at_risk" or "breached". Returns field errors (empty when valid).
     /// </summary>
-    public static Dictionary<string, string> Validate(string? status, string? priority, string? assignee, string? sort)
+    public static Dictionary<string, string> Validate(string? status, string? priority, string? assignee, string? sort, string? sla = null)
     {
         var errors = new Dictionary<string, string>();
         if (status is not null && !TicketRules.IsKnownStatus(status)) errors["status"] = "Unknown status";
         if (priority is not null && !PriorityRules.IsValid(priority)) errors["priority"] = "Unknown priority";
         if (sort is not null && !Sorts.Contains(sort)) errors["sort"] = "Sort must be newest, updated or priority";
         if (assignee is not null && !IsValidAssignee(assignee)) errors["assignee"] = "Assignee must be a user id or 'unassigned'";
+        if (sla is not null && !SlaRules.IsFilterState(sla)) errors["sla"] = "SLA must be at_risk or breached";
         return errors;
     }
 

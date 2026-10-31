@@ -37,8 +37,10 @@ public class VisibilityTests(WebApplicationFactory<Program> factory) : IClassFix
         var agent = await Actors.DemoAgentAsync(factory);
         var ticket = await Tickets.CreateAsync(customer, Tickets.UniqueCategory());
 
-        await customer.Http.PostAsJsonAsync($"/tickets/{ticket.Id}/comments", new { body = "Public question", @internal = false });
-        await agent.Http.PostAsJsonAsync($"/tickets/{ticket.Id}/comments", new { body = "Secret internal note", @internal = true });
+        var asked = await customer.Http.PostAsJsonAsync($"/tickets/{ticket.Id}/comments", new { body = "Public question", @internal = false });
+        var noted = await agent.Http.PostAsJsonAsync($"/tickets/{ticket.Id}/comments", new { body = "Secret internal note", @internal = true });
+        Assert.True(asked.StatusCode == HttpStatusCode.Created, await asked.Content.ReadAsStringAsync());
+        Assert.True(noted.StatusCode == HttpStatusCode.Created, await noted.Content.ReadAsStringAsync());
 
         var asCustomer = await Tickets.GetAsync(customer, ticket.Id);
         var asAgent = await Tickets.GetAsync(agent, ticket.Id);

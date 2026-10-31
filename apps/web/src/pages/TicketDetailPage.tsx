@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { AppShell } from '../components/AppShell'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { Link } from '../components/Link'
+import { SlaBadge } from '../components/SlaBadge'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { ApiError, api } from '../lib/api'
 import { EVENT_LABEL, PRIORITIES, PRIORITY_LABEL, ROLE_LABEL, STATUS_LABEL } from '../lib/constants'
@@ -277,6 +278,23 @@ export function TicketDetailPage({ id }: TicketDetailPageProps) {
                   {actionError}
                 </p>
               )}
+            </section>
+          )}
+
+          {isStaff && (
+            <section className="card" aria-labelledby="sla-title">
+              <h2 id="sla-title" className="card-title">
+                SLA
+              </h2>
+              <SlaBadge sla={ticket.sla} testId="ticket-sla" />
+              <p className="muted">
+                {ticket.sla.nextDue === null
+                  ? 'Every SLA clock has stopped.'
+                  : ticket.sla.nextDue === 'first_response'
+                    ? 'First response due'
+                    : 'Resolution due'}
+                {ticket.sla.dueAt && ` · ${formatDateTime(ticket.sla.dueAt)}`}
+              </p>
             </section>
           )}
 

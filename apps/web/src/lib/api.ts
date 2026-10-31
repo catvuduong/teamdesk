@@ -1,4 +1,4 @@
-import type { NewTicket, PublicUser, Role, Stats, TicketDetail, TicketPage, TicketPatch } from './types'
+import type { NewTicket, PublicUser, Role, SlaStats, Stats, TicketDetail, TicketPage, TicketPatch } from './types'
 import { readToken } from './session'
 
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
@@ -82,4 +82,25 @@ export const api = {
   updateUserRole: (id: number, role: Role) => request<PublicUser>('PATCH', `/users/${id}`, { role }),
 
   stats: () => request<Stats>('GET', '/stats'),
+
+  slaStats: () => request<SlaStats>('GET', '/stats/sla'),
+
+  /** Downloads the CSV for the given list filters. A plain link cannot send the bearer token, so the file is fetched first. */
+  exportTicketsCsv: async (params: URLSearchParams): Promise<Blob> => {
+    const token = readToken()
+    const headers: Record<string, string> = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+
+    let response: Response
+    try {
+      response = await fetch(`${API_URL}/tickets/export.csv?${params.toString()}`, { headers })
+    } catch {
+      throw new ApiError(0, 'Cannot reach the server. Check your connection and try again.')
+    }
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      throw new ApiError(response.status, payload.error ?? `Export failed (${response.status})`)
+    }
+    return response.blob()
+  },
 }

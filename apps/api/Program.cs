@@ -1,5 +1,6 @@
 using Api;
 using Api.Auth;
+using Microsoft.AspNetCore.HttpOverrides;
 using Api.Comments;
 using Api.Seed;
 using Api.Stats;
@@ -14,20 +15,34 @@ if (!string.IsNullOrEmpty(port)) builder.WebHost.UseUrls($"http://0.0.0.0:{port}
 
 builder.Services.AddSingleton<Db>();
 builder.Services.AddTeamDeskAuth();
+builder.Services.AddLoginRateLimit(builder.Configuration);
+
+// Behind the host's proxy the caller's address arrives in X-Forwarded-For. The proxy appends it, so the last entry is
+// the real client; without this every user would share the proxy's address and one rate-limit bucket.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 {
     var origins = (Environment.GetEnvironmentVariable("CORS_ORIGINS") ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyHeader().AllowAnyMethod();
-    else policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    // Retry-After is exposed so the web app can tell the user when they may try signing in again
+    var configured = origins.Length > 0 ? policy.WithOrigins(origins) : policy.AllowAnyOrigin();
+    configured.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Retry-After");
 }));
 
 var app = builder.Build();
+app.UseForwardedHeaders();
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Text("teamdesk API (ASP.NET Core). Endpoints: GET /health, POST /auth/register, POST /auth/login, GET /me, GET|POST /tickets, GET|PATCH /tickets/{id}, POST /tickets/{id}/comments, GET /users, GET /stats"));
+app.MapGet("/", () => Results.Text("teamdesk API (ASP.NET Core). Endpoints: GET /health, POST /auth/register, POST /auth/login, GET /me, GET|POST /tickets, GET /tickets/export.csv, GET|PATCH /tickets/{id}, POST /tickets/{id}/comments, GET /users, GET /stats, GET /stats/sla"));
 app.MapGet("/health", async (Db db) => Results.Ok(new { status = "ok", db = await db.StatusAsync() }));
 
 app.MapAuthEndpoints();

@@ -13,6 +13,14 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   return `${Math.round(hours / 24)}d ago`
 }
 
+/** "2h 14m left" until the deadline, or "overdue by 3h" once it has passed. */
+export function formatSlaRemaining(dueIso: string, now: number = Date.now()): string {
+  const due = new Date(dueIso).getTime()
+  const minutes = Math.round(Math.abs(due - now) / 60000)
+  const span = minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+  return due < now ? `overdue by ${span}` : `${span} left`
+}
+
 export function formatHours(hours: number | null): string {
   if (hours === null) return '—'
   return `${hours.toFixed(1)} h`
