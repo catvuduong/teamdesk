@@ -1,4 +1,4 @@
-import type { Priority, Role, Status } from './types'
+import type { Priority, Role, SlaState, Status } from './types'
 
 export const STATUSES: Status[] = ['open', 'in_progress', 'waiting', 'resolved', 'closed']
 export const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low']
@@ -25,6 +25,12 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   high: 'High',
   medium: 'Medium',
   low: 'Low',
+}
+
+export const SLA_STATE_LABEL: Record<SlaState, string> = {
+  on_track: 'On track',
+  at_risk: 'At risk',
+  breached: 'Breached',
 }
 
 export const ROLE_LABEL: Record<Role, string> = {

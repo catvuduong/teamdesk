@@ -6,6 +6,7 @@ import { EmptyState, Loading } from './components/States'
 import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { NewTicketPage } from './pages/NewTicketPage'
+import { SlaPage } from './pages/SlaPage'
 import { TicketDetailPage } from './pages/TicketDetailPage'
 import { TicketsPage } from './pages/TicketsPage'
 import { UsersPage } from './pages/UsersPage'
@@ -39,6 +40,7 @@ function Routes() {
 function Page({ pathname }: { pathname: string }) {
   if (pathname === '/dashboard') return <DashboardPage />
   if (pathname === '/users') return <UsersPage />
+  if (pathname === '/sla') return <SlaPage />
   if (pathname === '/tickets') return <TicketsPage />
   if (pathname === '/tickets/new') return <NewTicketPage />
 

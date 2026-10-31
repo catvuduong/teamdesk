@@ -40,4 +40,16 @@ public class TicketListRulesTests
     {
         Assert.Equal(valid, TicketListRules.IsValidAssignee(assignee));
     }
+
+    [Theory]
+    [InlineData("at_risk", true)]
+    [InlineData("breached", true)]
+    [InlineData("on_track", false)]
+    [InlineData("overdue", false)]
+    public void Sla_filter_accepts_only_at_risk_or_breached(string sla, bool valid)
+    {
+        var errors = TicketListRules.Validate(null, null, null, null, sla);
+
+        Assert.Equal(valid, errors.Count == 0);
+    }
 }

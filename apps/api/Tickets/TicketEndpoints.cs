@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
 using Api.Auth;
 using Api.Users;
@@ -9,11 +11,15 @@ namespace Api.Tickets;
 
 public static class TicketEndpoints
 {
+    private static readonly string[] CsvHeader =
+        ["Number", "Title", "Status", "Priority", "Category", "Requester", "Assignee", "Created at", "Updated at", "Resolved at", "SLA state"];
+
     public static void MapTicketEndpoints(this IEndpointRouteBuilder app)
     {
         var tickets = app.MapGroup("/tickets").RequireAuthorization().RequireDatabase();
         tickets.MapGet("/", ListTickets);
         tickets.MapPost("/", CreateTicket);
+        tickets.MapGet("/export.csv", ExportTicketsCsv).RequireAuthorization(AuthSetup.StaffPolicy);
         tickets.MapGet("/{id:int}", GetTicket);
         tickets.MapPatch("/{id:int}", UpdateTicket).RequireAuthorization(AuthSetup.StaffPolicy);
     }
@@ -26,21 +32,77 @@ public static class TicketEndpoints
         string? category,
         string? assignee,
         string? q,
+        string? sla,
         bool mine = false,
         string? sort = null,
         int page = 1,
         int pageSize = TicketListRules.DefaultPageSize)
     {
-        var errors = TicketListRules.Validate(status, priority, assignee, sort);
+        var errors = TicketListRules.Validate(status, priority, assignee, sort, sla);
         if (errors.Count > 0) return Errors.Validation(errors);
 
-        var filter = new TicketFilter(
-            status, priority, string.IsNullOrWhiteSpace(category) ? null : category.Trim(), assignee, q,
-            mine, sort ?? TicketListRules.Newest, page, pageSize);
+        var filter = FilterFrom(status, priority, category, assignee, q, sla, mine, sort, page, pageSize);
 
         await using var conn = await db.OpenAsync();
-        return Results.Ok(await TicketQueries.ListAsync(conn, CurrentUser.From(principal), filter));
+        return Results.Ok(await TicketQueries.ListAsync(conn, CurrentUser.From(principal), filter, DateTime.UtcNow));
     }
+
+    /// <summary>
+    /// Every ticket the filters match, as CSV for agents and admins. The filters are the list's, without paging.
+    /// Rows are read from the database and written to the response one at a time, so the export is never held in memory.
+    /// </summary>
+    private static IResult ExportTicketsCsv(
+        ClaimsPrincipal principal,
+        Db db,
+        string? status,
+        string? priority,
+        string? category,
+        string? assignee,
+        string? q,
+        string? sla,
+        bool mine = false,
+        string? sort = null)
+    {
+        var errors = TicketListRules.Validate(status, priority, assignee, sort, sla);
+        if (errors.Count > 0) return Errors.Validation(errors);
+
+        var me = CurrentUser.From(principal);
+        var filter = FilterFrom(status, priority, category, assignee, q, sla, mine, sort, 1, TicketListRules.DefaultPageSize);
+        var now = DateTime.UtcNow;
+
+        return Results.Stream(async stream =>
+        {
+            await using var conn = await db.OpenAsync();
+            await using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true) { NewLine = Csv.NewLine };
+            await writer.WriteLineAsync(Csv.Line(CsvHeader));
+            await foreach (var ticket in TicketQueries.StreamMatchingAsync(conn, me, filter, now))
+                await writer.WriteLineAsync(Csv.Line(CsvFields(ticket)));
+            await writer.FlushAsync();
+        }, "text/csv; charset=utf-8", "tickets.csv");
+    }
+
+    private static IEnumerable<string?> CsvFields(TicketSummary ticket) =>
+    [
+        ticket.Number.ToString(CultureInfo.InvariantCulture),
+        ticket.Title,
+        ticket.Status,
+        ticket.Priority,
+        ticket.Category,
+        ticket.Requester.Name,
+        ticket.Assignee?.Name,
+        IsoUtc(ticket.CreatedAt),
+        IsoUtc(ticket.UpdatedAt),
+        IsoUtc(ticket.ResolvedAt),
+        ticket.Sla.State,
+    ];
+
+    private static string? IsoUtc(DateTime? value) => value?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
+    private static TicketFilter FilterFrom(
+        string? status, string? priority, string? category, string? assignee, string? q, string? sla,
+        bool mine, string? sort, int page, int pageSize) =>
+        new(status, priority, string.IsNullOrWhiteSpace(category) ? null : category.Trim(), assignee, q, sla,
+            mine, sort ?? TicketListRules.Newest, page, pageSize);
 
     private static async Task<IResult> CreateTicket(CreateTicketRequest body, ClaimsPrincipal principal, Db db)
     {
@@ -74,14 +136,14 @@ public static class TicketEndpoints
         await TicketQueries.AddEventAsync(conn, tx, id, me.Id, "created", "Ticket created", now);
         await tx.CommitAsync();
 
-        var detail = await TicketQueries.DetailAsync(conn, me, id);
+        var detail = await TicketQueries.DetailAsync(conn, me, id, now);
         return Results.Created($"/tickets/{id}", detail);
     }
 
     private static async Task<IResult> GetTicket(int id, ClaimsPrincipal principal, Db db)
     {
         await using var conn = await db.OpenAsync();
-        var detail = await TicketQueries.DetailAsync(conn, CurrentUser.From(principal), id);
+        var detail = await TicketQueries.DetailAsync(conn, CurrentUser.From(principal), id, DateTime.UtcNow);
         return detail is null ? Errors.Problem(StatusCodes.Status404NotFound, "Ticket not found") : Results.Ok(detail);
     }
 
@@ -159,7 +221,7 @@ public static class TicketEndpoints
 
         await tx.CommitAsync();
 
-        var detail = await TicketQueries.DetailAsync(conn, me, id);
+        var detail = await TicketQueries.DetailAsync(conn, me, id, DateTime.UtcNow);
         return Results.Ok(detail);
     }
 

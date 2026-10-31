@@ -1,9 +1,12 @@
 using Api.Auth;
+using Api.Sla;
 using Api.Tickets;
 using Dapper;
 using Npgsql;
 
 namespace Api.Stats;
+
+public sealed record SlaStatsResponse(IReadOnlyList<PriorityBreach> ByPriority);
 
 public sealed record StatsResponse(
     int Open,
@@ -27,6 +30,17 @@ public static class StatsEndpoints
         app.MapGet("/stats", GetStats)
             .RequireAuthorization(AuthSetup.StaffPolicy)
             .RequireDatabase();
+        app.MapGet("/stats/sla", GetSlaStats)
+            .RequireAuthorization(AuthSetup.StaffPolicy)
+            .RequireDatabase();
+    }
+
+    /// <summary>Breach rate per priority: the share of tickets whose SLA is breached now or was breached when they closed.</summary>
+    private static async Task<IResult> GetSlaStats(Db db)
+    {
+        await using var conn = await db.OpenAsync();
+        var states = await TicketQueries.AllSlaStatesAsync(conn, DateTime.UtcNow);
+        return Results.Ok(new SlaStatsResponse(SlaReport.ByPriority(states)));
     }
 
     /// <summary>

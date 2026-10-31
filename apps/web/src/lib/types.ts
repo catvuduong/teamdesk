@@ -14,6 +14,15 @@ export interface PersonRef {
   name: string
 }
 
+export type SlaState = 'on_track' | 'at_risk' | 'breached'
+
+export interface SlaStatus {
+  state: SlaState
+  /** The open clock with the earliest deadline, or null when every clock has stopped */
+  nextDue: 'first_response' | 'resolution' | null
+  dueAt: string | null
+}
+
 export interface TicketSummary {
   id: number
   number: number
@@ -25,6 +34,21 @@ export interface TicketSummary {
   assignee: PersonRef | null
   createdAt: string
   updatedAt: string
+  resolvedAt: string | null
+  sla: SlaStatus
+}
+
+export interface PriorityBreach {
+  priority: Priority
+  total: number
+  breached: number
+  atRisk: number
+  /** Percent of the priority's tickets that breached, or null when there are none */
+  breachRate: number | null
+}
+
+export interface SlaStats {
+  byPriority: PriorityBreach[]
 }
 
 export interface TicketPage {

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Api.Users;
 using Dapper;
+using Microsoft.AspNetCore.RateLimiting;
 using Npgsql;
 
 namespace Api.Auth;
@@ -15,7 +16,7 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/auth").RequireDatabase();
         auth.MapPost("/register", Register);
-        auth.MapPost("/login", Login);
+        auth.MapPost("/login", Login).RequireRateLimiting(LoginRateLimit.Policy);
 
         app.MapGet("/me", Me).RequireAuthorization().RequireDatabase();
     }

@@ -1,4 +1,5 @@
 using Api.Auth;
+using Api.Sla;
 using Api.Tickets;
 using Dapper;
 using Npgsql;
@@ -35,19 +36,22 @@ public static class DemoSeed
         var agents = SeedData.Users.Where(u => u.Role == Roles.Agent).Select(u => ids[u.Email]).ToArray();
         var customers = SeedData.Users.Where(u => u.Role == Roles.Customer).Select(u => ids[u.Email]).ToArray();
         var names = SeedData.Users.ToDictionary(u => ids[u.Email], u => u.Name);
+        var policies = await SlaQueries.PoliciesAsync(conn, tx);
 
         for (var i = 0; i < SeedData.Tickets.Length; i++)
         {
             var template = SeedData.Tickets[i];
+            var policy = policies[template.Priority];
             var plan = new TicketPlan(
                 Index: i,
                 Template: template,
-                Created: now - TimeSpan.FromHours(16 * i + 3),
+                Created: now - AgeOf(i, template, policy),
                 Now: now,
                 Requester: customers[i % customers.Length],
                 Assignee: template.Status == TicketRules.Open && i % 2 == 1 ? null : agents[i % agents.Length],
                 Admin: admin,
-                Names: names);
+                Names: names,
+                Policy: policy);
             await InsertTicketAsync(conn, tx, plan);
         }
 
@@ -75,7 +79,31 @@ public static class DemoSeed
         int Requester,
         int? Assignee,
         int Admin,
-        IReadOnlyDictionary<int, string> Names);
+        IReadOnlyDictionary<int, string> Names,
+        SlaPolicy Policy);
+
+    /// <summary>
+    /// Share of the target that has elapsed for unresolved tickets, by position in <see cref="SeedData.Tickets"/>.
+    /// Most stay well inside their target. A few are at risk (over 75% used) or breached, so the SLA views have examples.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<int, double> ElapsedShare = new Dictionary<int, double>
+    {
+        [14] = 0.85, [31] = 0.8, [43] = 0.9, // at risk
+        [5] = 1.5, [39] = 1.5, [34] = 1.25, [37] = 1.3, // breached
+    };
+
+    /// <summary>
+    /// How long ago a ticket was opened. Resolved tickets keep a spread of history. Unresolved tickets sit at a share of the
+    /// target they are judged against: the first response while open, the resolution once work has started.
+    /// </summary>
+    private static TimeSpan AgeOf(int index, SeedTicket template, SlaPolicy policy)
+    {
+        if (template.Status is TicketRules.Resolved or TicketRules.Closed) return TimeSpan.FromHours(16 * index + 3);
+
+        var targetHours = template.Status == TicketRules.Open ? policy.FirstResponseHours : policy.ResolutionHours;
+        var share = ElapsedShare.GetValueOrDefault(index, 0.3 + 0.05 * (index % 5));
+        return TimeSpan.FromHours(targetHours * share);
+    }
 
     /// <summary>
     /// Writes one ticket with a believable history: assignment, status path, public replies and some internal notes.
@@ -91,8 +119,9 @@ public static class DemoSeed
 
         DateTime At(TimeSpan offset) => Min(created + offset, now);
 
+        // Resolved tickets finish inside their resolution target, so breaches in the seed come from the unresolved set
         var resolvedAt = template.Status is TicketRules.Resolved or TicketRules.Closed
-            ? At(TimeSpan.FromHours(6 + (index * 7) % 40))
+            ? At(TimeSpan.FromHours(Math.Min(6 + (index * 7) % 40, 0.6 * plan.Policy.ResolutionHours)))
             : (DateTime?)null;
 
         var ticketId = await conn.ExecuteScalarAsync<int>(
@@ -147,7 +176,7 @@ public static class DemoSeed
 
         if (template.Status != TicketRules.Open)
         {
-            updated = Max(updated, await AddCommentAsync(conn, tx, ticketId, actor, SeedData.AgentReplies[index % SeedData.AgentReplies.Length], false, At(TimeSpan.FromMinutes(90))));
+            updated = Max(updated, await AddCommentAsync(conn, tx, ticketId, actor, SeedData.AgentReplies[index % SeedData.AgentReplies.Length], false, At(TimeSpan.FromHours(plan.Policy.FirstResponseHours / 2.0))));
 
             if (template.Status is (TicketRules.InProgress or TicketRules.Waiting or TicketRules.Resolved or TicketRules.Closed) && index % 3 == 0)
             {

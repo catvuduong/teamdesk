@@ -39,6 +39,6 @@ export function homeFor(user: PublicUser): string {
 export function redirectFor(user: PublicUser | null, pathname: string): string | null {
   if (!user) return pathname === '/login' ? null : '/login'
   if (pathname === '/login' || pathname === '/') return homeFor(user)
-  if (user.role === 'customer' && (pathname === '/dashboard' || pathname === '/users')) return '/tickets'
+  if (user.role === 'customer' && (pathname === '/dashboard' || pathname === '/users' || pathname === '/sla')) return '/tickets'
   return null
 }

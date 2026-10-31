@@ -1,3 +1,4 @@
+using Api.Sla;
 using Api.Users;
 
 namespace Api.Tickets;
@@ -12,7 +13,9 @@ public sealed record TicketSummary(
     PersonRef Requester,
     PersonRef? Assignee,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    DateTime? ResolvedAt,
+    SlaStatus Sla);
 
 public sealed record TicketPage(IReadOnlyList<TicketSummary> Items, int Total, int Page, int PageSize);
 
@@ -34,6 +37,7 @@ public sealed record TicketDetail(
     DateTime UpdatedAt,
     DateTime? ResolvedAt,
     IReadOnlyList<string> AllowedStatuses,
+    SlaStatus Sla,
     IReadOnlyList<CommentView> Comments,
     IReadOnlyList<EventView> Events);
 
@@ -57,16 +61,19 @@ public sealed class TicketRow
     public DateTime UpdatedAt { get; set; }
     public DateTime? ResolvedAt { get; set; }
 
+    /// <summary>The first public staff reply at or after creation (see TicketQueries.FirstReplyJoin); null when none.</summary>
+    public DateTime? FirstReplyAt { get; set; }
+
     public PersonRef Requester => new(RequesterId, RequesterName);
 
     public PersonRef? Assignee => AssigneeId is { } id ? new PersonRef(id, AssigneeName ?? "") : null;
 
-    public TicketSummary ToSummary() => new(
-        Id, Number, Title, Status, Priority, Category, Requester, Assignee, CreatedAt, UpdatedAt);
+    public TicketSummary ToSummary(SlaStatus sla) => new(
+        Id, Number, Title, Status, Priority, Category, Requester, Assignee, CreatedAt, UpdatedAt, ResolvedAt, sla);
 
-    public TicketDetail ToDetail(IReadOnlyList<CommentView> comments, IReadOnlyList<EventView> events) => new(
+    public TicketDetail ToDetail(SlaStatus sla, IReadOnlyList<CommentView> comments, IReadOnlyList<EventView> events) => new(
         Id, Number, Title, Description, Status, Priority, Category, Requester, Assignee,
-        CreatedAt, UpdatedAt, ResolvedAt, TicketRules.AllowedTargets(Status), comments, events);
+        CreatedAt, UpdatedAt, ResolvedAt, TicketRules.AllowedTargets(Status), sla, comments, events);
 }
 
 public sealed class CommentRow

@@ -2,16 +2,23 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { AppShell } from '../components/AppShell'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
+import { SlaBadge } from '../components/SlaBadge'
 import { ErrorState, EmptyState, Loading } from '../components/States'
 import { Link } from '../components/Link'
 import { api } from '../lib/api'
-import { CATEGORIES, PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from '../lib/constants'
+import { CATEGORIES, PRIORITIES, PRIORITY_LABEL, SLA_STATE_LABEL, STATUSES, STATUS_LABEL } from '../lib/constants'
 import { messageOf } from '../lib/errors'
 import { timeAgo } from '../lib/format'
 import { navigate, useLocation } from '../lib/router'
 import type { PublicUser, TicketPage } from '../lib/types'
 
 const PAGE_SIZE = 20
+
+/** Filters that narrow the list. Paging is not one of them, so an export always covers every matching ticket. */
+const FILTER_KEYS = ['q', 'status', 'priority', 'category', 'assignee', 'mine', 'sort', 'sla'] as const
+
+/** Quick filters for the SLA states that need attention. */
+const SLA_QUICK_FILTERS = ['at_risk', 'breached'] as const
 
 const SORT_LABEL: Record<string, string> = {
   newest: 'Newest first',
@@ -28,7 +35,7 @@ export function TicketsPage() {
   const params = useMemo(() => new URLSearchParams(search), [search])
   const query = useMemo(() => {
     const next = new URLSearchParams()
-    for (const key of ['q', 'status', 'priority', 'category', 'assignee', 'mine', 'sort', 'page']) {
+    for (const key of [...FILTER_KEYS, 'page']) {
       const value = params.get(key)
       if (value) next.set(key, value)
     }
@@ -43,6 +50,31 @@ export function TicketsPage() {
   const [attempt, setAttempt] = useState(0)
   const [people, setPeople] = useState<PublicUser[]>([])
   const [searchText, setSearchText] = useState(params.get('q') ?? '')
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  async function exportCsv() {
+    const filters = new URLSearchParams()
+    for (const key of FILTER_KEYS) {
+      const value = params.get(key)
+      if (value) filters.set(key, value)
+    }
+    setExporting(true)
+    setExportError(null)
+    try {
+      const blob = await api.exportTicketsCsv(filters)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'tickets.csv'
+      link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      setExportError(messageOf(err))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -97,7 +129,7 @@ export function TicketsPage() {
 
   const page = Number(params.get('page') ?? '1') || 1
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
-  const filtersActive = ['q', 'status', 'priority', 'category', 'assignee', 'mine'].some((key) => params.get(key))
+  const filtersActive = ['q', 'status', 'priority', 'category', 'assignee', 'mine', 'sla'].some((key) => params.get(key))
 
   return (
     <AppShell>
@@ -106,10 +138,41 @@ export function TicketsPage() {
           <h1>Tickets</h1>
           <p className="muted">{data ? `${data.total} ${data.total === 1 ? 'ticket' : 'tickets'}` : 'Loading…'}</p>
         </div>
-        <Link to="/tickets/new" className="button primary">
-          New ticket
-        </Link>
+        <div className="row">
+          {isStaff && (
+            <button type="button" className="button secondary" onClick={exportCsv} disabled={exporting}>
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+          )}
+          <Link to="/tickets/new" className="button primary">
+            New ticket
+          </Link>
+        </div>
       </header>
+      {exportError && (
+        <p role="alert" className="form-error">
+          {exportError}
+        </p>
+      )}
+
+      {isStaff && (
+        <div className="chip-row" role="group" aria-label="SLA quick filters">
+          {SLA_QUICK_FILTERS.map((sla) => {
+            const active = params.get('sla') === sla
+            return (
+              <button
+                key={sla}
+                type="button"
+                className={active ? 'chip active' : 'chip'}
+                aria-pressed={active}
+                onClick={() => setFilter('sla', active ? '' : sla)}
+              >
+                {SLA_STATE_LABEL[sla]}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <form role="search" className="filter-bar" onSubmit={(event) => event.preventDefault()}>
         <label className="field grow">
@@ -233,6 +296,7 @@ export function TicketsPage() {
                   <span className="ticket-badges">
                     <StatusBadge status={ticket.status} />
                     <PriorityBadge priority={ticket.priority} />
+                    {isStaff && <SlaBadge sla={ticket.sla} testId="sla-badge" />}
                     <span className="assignee">{ticket.assignee ? ticket.assignee.name : 'Unassigned'}</span>
                   </span>
                 </Link>
