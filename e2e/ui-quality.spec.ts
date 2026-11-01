@@ -11,11 +11,17 @@ async function signIn(page: Page, testId: string) {
 
 /** The page is no wider than the phone screen: nothing forces a sideways scroll. */
 async function expectNoHorizontalScroll(page: Page, label: string) {
-  const overflow = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    client: document.documentElement.clientWidth,
-  }))
-  expect(overflow.scroll, `${label} scrolls sideways`).toBeLessThanOrEqual(overflow.client)
+  const overflow = await page.evaluate(() => {
+    const wide: string[] = []
+    document.querySelectorAll('body *').forEach((element) => {
+      const box = element.getBoundingClientRect()
+      if (box.right > document.documentElement.clientWidth + 1 && !element.closest('.nav')) {
+        wide.push(`${element.tagName.toLowerCase()}.${String((element as HTMLElement).className).trim()} right=${Math.round(box.right)}`)
+      }
+    })
+    return { scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth, wide: wide.slice(0, 6) }
+  })
+  expect(overflow.scroll, `${label} scrolls sideways; wide elements: ${overflow.wide.join(' | ') || 'none outside .nav'}`).toBeLessThanOrEqual(overflow.client)
 }
 
 test.describe('design system', () => {
