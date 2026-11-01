@@ -1764,7 +1764,7 @@ input[type="radio"] {
 
 .article-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: var(--space-4);
   margin: 0;
   padding: 0;
@@ -1774,6 +1774,9 @@ input[type="radio"] {
 .article-card {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  overflow-wrap: anywhere;
   align-content: start;
   gap: var(--space-2);
   transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
