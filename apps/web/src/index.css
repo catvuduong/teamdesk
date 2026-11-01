@@ -2221,6 +2221,7 @@ input[type="radio"] {
     position: sticky;
     top: 0;
     z-index: 10;
+    min-width: 0;
     height: auto;
     flex-direction: row;
     flex-wrap: wrap;
@@ -2263,6 +2264,8 @@ input[type="radio"] {
   .nav {
     order: 3;
     flex: 0 0 100%;
+    min-width: 0;
+    max-width: 100%;
     flex-direction: row;
     overflow-x: auto;
     gap: var(--space-1);
