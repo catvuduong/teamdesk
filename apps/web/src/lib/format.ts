@@ -21,6 +21,15 @@ export function formatSlaRemaining(dueIso: string, now: number = Date.now()): st
   return due < now ? `overdue by ${span}` : `${span} left`
 }
 
+/** "Priya Shah" becomes "PS", for avatars. */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  const first = parts[0].charAt(0)
+  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : ''
+  return `${first}${last}`
+}
+
 export function formatHours(hours: number | null): string {
   if (hours === null) return '—'
   return `${hours.toFixed(1)} h`

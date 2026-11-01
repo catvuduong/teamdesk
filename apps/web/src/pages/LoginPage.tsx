@@ -62,44 +62,54 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <section className="login-card" aria-labelledby="login-title">
-        <p className="eyebrow">Support for small teams</p>
-        <h1 id="login-title">Sign in to TeamDesk</h1>
-        <p className="muted">
-          Track customer requests from first message to resolution. Pick a demo account to explore, or use your own.
-        </p>
+      <div className="login-inner">
+        <div className="login-brand">
+          <span className="brand-mark brand-mark-lg" aria-hidden="true">
+            TD
+          </span>
+          <span>TeamDesk</span>
+        </div>
 
-        <form className="stack" onSubmit={submit} noValidate>
-          {mode === 'register' && (
-            <div className="field">
-              <label htmlFor="login-name">Name</label>
-              <input id="login-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-          )}
-          <div className="field">
-            <label htmlFor="login-email">Email</label>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="login-password">Password</label>
-            <input
-              id="login-password"
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <div className="row between">
-            <button type="submit" className="button primary" disabled={busy !== null}>
-              {busy === 'form' ? 'Signing in…' : mode === 'signin' ? 'Sign in' : 'Create account'}
-            </button>
+        <div className="login-grid">
+          <section className="card login-card" aria-labelledby="login-title">
+            <p className="eyebrow">Support for small teams</p>
+            <h1 id="login-title">Sign in to TeamDesk</h1>
+            <p className="muted">
+              Track customer requests from first message to resolution. Pick a demo account to explore, or use your own.
+            </p>
+
+            <form className="stack" onSubmit={submit} noValidate>
+              {mode === 'register' && (
+                <div className="field">
+                  <label htmlFor="login-name">Name</label>
+                  <input id="login-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+              )}
+              <div className="field">
+                <label htmlFor="login-email">Email</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="login-password">Password</label>
+                <input
+                  id="login-password"
+                  type="password"
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="button primary" disabled={busy !== null}>
+                {busy === 'form' ? 'Signing in…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+              </button>
+            </form>
+
             <button
               type="button"
               className="button link"
@@ -110,43 +120,43 @@ export function LoginPage() {
             >
               {mode === 'signin' ? 'Create a customer account' : 'Back to sign in'}
             </button>
-          </div>
-        </form>
 
-        <div className="error-slot" role="alert" aria-live="assertive">
-          {error && <p className="form-error">{error}</p>}
+            <div className="error-slot" role="alert" aria-live="assertive">
+              {error && <p className="form-error">{error}</p>}
+            </div>
+          </section>
+
+          <section className="card demo-card" aria-labelledby="demo-title">
+            <h2 id="demo-title">Demo accounts</h2>
+            <p className="muted">
+              Every demo account uses the password <code className="inline-code">{DEMO_PASSWORD}</code>. It only works
+              against this demo data.
+            </p>
+            <ul className="demo-list">
+              {DEMO_ACCOUNTS.map((account) => (
+                <li key={account.email} className="demo-item">
+                  <div>
+                    <span className="demo-email">{account.email}</span>
+                    <RoleBadge role={account.role} />
+                  </div>
+                  <button
+                    type="button"
+                    className="button primary small"
+                    data-testid={account.testId}
+                    disabled={busy !== null}
+                    onClick={() => signInAs(account.testId, account.email, DEMO_PASSWORD)}
+                  >
+                    {busy === account.testId ? 'Signing in…' : account.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className={health.startsWith('api ok') ? 'health health-ok' : 'health'} data-testid="health" title={API_URL}>
+              {health}
+            </p>
+          </section>
         </div>
-      </section>
-
-      <section className="demo-card" aria-labelledby="demo-title">
-        <h2 id="demo-title">Demo accounts</h2>
-        <p className="muted">
-          Every demo account uses the password <code className="inline-code">{DEMO_PASSWORD}</code>. It only works
-          against this demo data.
-        </p>
-        <ul className="demo-list">
-          {DEMO_ACCOUNTS.map((account) => (
-            <li key={account.email} className="demo-item">
-              <div>
-                <div className="demo-email">{account.email}</div>
-                <RoleBadge role={account.role} />
-              </div>
-              <button
-                type="button"
-                className="button primary small"
-                data-testid={account.testId}
-                disabled={busy !== null}
-                onClick={() => signInAs(account.testId, account.email, DEMO_PASSWORD)}
-              >
-                {busy === account.testId ? 'Signing in…' : account.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <p className="health" data-testid="health" title={API_URL}>
-          {health}
-        </p>
-      </section>
+      </div>
     </div>
   )
 }

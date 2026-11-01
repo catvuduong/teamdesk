@@ -10,7 +10,7 @@ export function HelpShell({ children }: { children: ReactNode }) {
   if (user) return <AppShell>{children}</AppShell>
 
   return (
-    <div className="shell">
+    <div className="shell guest">
       <a href="#main" className="skip-link">
         Skip to content
       </a>
@@ -19,11 +19,11 @@ export function HelpShell({ children }: { children: ReactNode }) {
           <span className="brand-mark" aria-hidden="true">
             TD
           </span>
-          TeamDesk help
+          <span>TeamDesk help</span>
         </Link>
         <div className="topbar-end">
           <ThemeToggle />
-          <Link to="/login" className="button ghost">
+          <Link to="/login" className="button secondary">
             Sign in
           </Link>
         </div>

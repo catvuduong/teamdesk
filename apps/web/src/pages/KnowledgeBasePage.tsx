@@ -26,7 +26,7 @@ export function KnowledgeBasePage() {
         </div>
       </header>
 
-      <form className="card stack" role="search" onSubmit={(event) => event.preventDefault()}>
+      <form className="card stack help-search" role="search" onSubmit={(event) => event.preventDefault()}>
         <label className="field">
           <span>Search articles</span>
           <input
