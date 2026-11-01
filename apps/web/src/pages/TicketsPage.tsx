@@ -3,7 +3,7 @@ import { useAuth } from '../auth/AuthContext'
 import { AppShell } from '../components/AppShell'
 import { PriorityBadge, StatusBadge } from '../components/Badges'
 import { SlaBadge } from '../components/SlaBadge'
-import { ErrorState, EmptyState, Loading } from '../components/States'
+import { ErrorState, EmptyState, Loading, SkeletonTable } from '../components/States'
 import { Link } from '../components/Link'
 import { api } from '../lib/api'
 import { CATEGORIES, PRIORITIES, PRIORITY_LABEL, SLA_STATE_LABEL, STATUSES, STATUS_LABEL } from '../lib/constants'
@@ -265,9 +265,15 @@ export function TicketsPage() {
         )}
       </form>
 
-      <div className={loading && data ? 'list is-refreshing' : 'list'} aria-busy={loading}>
+      <div className={loading && data ? 'is-refreshing' : undefined} aria-busy={loading}>
         {error && <ErrorState message={error} onRetry={() => setAttempt((n) => n + 1)} />}
-        {!error && !data && <Loading label="Loading tickets" />}
+        {!error && !data && (
+          <div className="card table-card">
+            <Loading label="Loading tickets">
+              <SkeletonTable rows={6} />
+            </Loading>
+          </div>
+        )}
         {data && data.items.length === 0 && (
           <EmptyState title="No tickets match these filters">
             {filtersActive ? (
@@ -282,27 +288,57 @@ export function TicketsPage() {
           </EmptyState>
         )}
         {data && data.items.length > 0 && (
-          <ul className="ticket-list" aria-label="Tickets">
-            {data.items.map((ticket) => (
-              <li key={ticket.id} className="ticket-row" data-testid="ticket-row">
-                <Link to={`/tickets/${ticket.id}`} className="ticket-card">
-                  <span className="ticket-main">
-                    <span className="ticket-number">#{ticket.number}</span>
-                    <span className="ticket-title">{ticket.title}</span>
-                    <span className="ticket-meta">
-                      {ticket.category} · {ticket.requester.name} · updated {timeAgo(ticket.updatedAt)}
-                    </span>
-                  </span>
-                  <span className="ticket-badges">
-                    <StatusBadge status={ticket.status} />
-                    <PriorityBadge priority={ticket.priority} />
-                    {isStaff && <SlaBadge sla={ticket.sla} testId="sla-badge" />}
-                    <span className="assignee">{ticket.assignee ? ticket.assignee.name : 'Unassigned'}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="card table-card">
+            <table className="data-table stack-table ticket-table">
+              <caption className="visually-hidden">Tickets</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Ticket</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Priority</th>
+                  {isStaff && <th scope="col">SLA</th>}
+                  <th scope="col">Assignee</th>
+                  <th scope="col">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((ticket) => (
+                  <tr key={ticket.id} data-testid="ticket-row">
+                    <td className="ticket-cell">
+                      <Link to={`/tickets/${ticket.id}`} className="ticket-link">
+                        <span className="ticket-number">#{ticket.number}</span>
+                        {ticket.title}
+                      </Link>
+                      <span className="ticket-meta">
+                        {ticket.category} · {ticket.requester.name}
+                      </span>
+                    </td>
+                    <td data-label="Status">
+                      <StatusBadge status={ticket.status} />
+                    </td>
+                    <td data-label="Priority">
+                      <PriorityBadge priority={ticket.priority} />
+                    </td>
+                    {isStaff && (
+                      <td data-label="SLA">
+                        <SlaBadge sla={ticket.sla} testId="sla-badge" />
+                      </td>
+                    )}
+                    <td data-label="Assignee">
+                      {ticket.assignee ? (
+                        <span className="assignee">{ticket.assignee.name}</span>
+                      ) : (
+                        <span className="assignee-empty">Unassigned</span>
+                      )}
+                    </td>
+                    <td data-label="Updated" className="muted">
+                      {timeAgo(ticket.updatedAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, Loading } from '../components/States'
 import { ApiError, api } from '../lib/api'
 import { EVENT_LABEL, PRIORITIES, PRIORITY_LABEL, ROLE_LABEL, STATUS_LABEL } from '../lib/constants'
 import { messageOf } from '../lib/errors'
-import { formatDateTime, timeAgo } from '../lib/format'
+import { formatDateTime, initials, timeAgo } from '../lib/format'
 import type { PublicUser, Status, Priority, TicketDetail, TicketPatch } from '../lib/types'
 
 interface TicketDetailPageProps {
@@ -165,14 +165,19 @@ export function TicketDetailPage({ id }: TicketDetailPageProps) {
               {ticket.comments.length === 0 && <li className="muted">No replies yet.</li>}
               {ticket.comments.map((comment) => (
                 <li key={comment.id} className={comment.internal ? 'message internal' : 'message'}>
-                  <header className="message-head">
-                    <strong>{comment.author.name}</strong>
-                    <span className="muted">
-                      {ROLE_LABEL[comment.authorRole]} · {timeAgo(comment.createdAt)}
-                    </span>
-                    {comment.internal && <span className="tag tag-internal">Internal note</span>}
-                  </header>
-                  <p>{comment.body}</p>
+                  <span className="avatar" aria-hidden="true">
+                    {initials(comment.author.name)}
+                  </span>
+                  <div className="message-body">
+                    <header className="message-head">
+                      <strong>{comment.author.name}</strong>
+                      <span className="muted">
+                        {ROLE_LABEL[comment.authorRole]} · {timeAgo(comment.createdAt)}
+                      </span>
+                      {comment.internal && <span className="tag tag-internal">Internal note</span>}
+                    </header>
+                    <p className="prose">{comment.body}</p>
+                  </div>
                 </li>
               ))}
             </ol>

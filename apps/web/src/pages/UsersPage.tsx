@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { AppShell } from '../components/AppShell'
-import { ErrorState, Loading } from '../components/States'
+import { ErrorState, Loading, SkeletonTable } from '../components/States'
 import { api } from '../lib/api'
 import { ROLE_LABEL } from '../lib/constants'
 import { messageOf } from '../lib/errors'
+import { initials } from '../lib/format'
 import type { PublicUser, Role } from '../lib/types'
 
 const ROLES: Role[] = ['customer', 'agent', 'admin']
@@ -59,7 +60,13 @@ export function UsersPage() {
       </header>
 
       {error && <ErrorState message={error} onRetry={() => setAttempt((n) => n + 1)} />}
-      {!error && !users && <Loading label="Loading users" />}
+      {!error && !users && (
+        <div className="card table-card">
+          <Loading label="Loading users">
+            <SkeletonTable rows={4} />
+          </Loading>
+        </div>
+      )}
       {rowError && (
         <p role="alert" className="form-error">
           {rowError}
@@ -68,7 +75,8 @@ export function UsersPage() {
 
       {users && (
         <div className="card table-card">
-          <table className="data-table">
+          <table className="data-table stack-table">
+            <caption className="visually-hidden">Workspace members</caption>
             <thead>
               <tr>
                 <th scope="col">Name</th>
@@ -79,9 +87,18 @@ export function UsersPage() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td>{u.name}</td>
-                  <td className="muted">{u.email}</td>
-                  <td>
+                  <td data-label="Name">
+                    <span className="person">
+                      <span className="avatar small" aria-hidden="true">
+                        {initials(u.name)}
+                      </span>
+                      {u.name}
+                    </span>
+                  </td>
+                  <td data-label="Email" className="muted">
+                    {u.email}
+                  </td>
+                  <td data-label="Role">
                     {isAdmin ? (
                       <label className="visually-hidden" htmlFor={`role-${u.id}`}>
                         Role for {u.name}

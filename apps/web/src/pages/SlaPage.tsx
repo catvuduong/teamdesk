@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppShell } from '../components/AppShell'
+import { PriorityBadge } from '../components/Badges'
 import { ErrorState, Loading } from '../components/States'
 import { SlaBreachChart } from '../components/SlaBreachChart'
 import { api } from '../lib/api'
@@ -40,15 +41,48 @@ export function SlaPage() {
       {!error && !rows && <Loading label="Loading SLA report" />}
 
       {rows && (
-        <div className="dashboard-grid">
-          <section className="card span-2" aria-labelledby="breach-title">
+        <div className="dashboard-grid sla-grid">
+          <section className="card sla-main" aria-labelledby="breach-title">
             <h2 id="breach-title" className="card-title">
               Breach rate by priority
             </h2>
             <SlaBreachChart rows={rows} />
           </section>
 
-          <section className="card" aria-labelledby="states-title">
+          <section className="card table-card sla-main" aria-labelledby="report-title">
+            <h2 id="report-title" className="card-title table-title">
+              Priority report
+            </h2>
+            <table className="data-table stack-table">
+              <caption className="visually-hidden">Tickets and SLA breaches by priority</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Priority</th>
+                  <th scope="col">Tickets</th>
+                  <th scope="col">At risk</th>
+                  <th scope="col">Breached</th>
+                  <th scope="col">Breach rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.priority}>
+                    <td data-label="Priority">
+                      <PriorityBadge priority={row.priority} />
+                    </td>
+                    <td data-label="Tickets">{row.total}</td>
+                    <td data-label="At risk">{row.atRisk}</td>
+                    <td data-label="Breached">{row.breached}</td>
+                    <td data-label="Breach rate">
+                      {row.breachRate === null ? <span className="muted">No tickets</span> : `${row.breachRate.toFixed(1)}%`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          <section className="card sla-aside" aria-labelledby="states-title">
             <h2 id="states-title" className="card-title">
               What the states mean
             </h2>

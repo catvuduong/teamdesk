@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AppShell } from '../components/AppShell'
-import { CsatCard } from '../components/CsatCard'
 import { CsatPanel } from '../components/CsatPanel'
-import { ErrorState, Loading } from '../components/States'
+import { ErrorState, Loading, SkeletonLines } from '../components/States'
 import { KpiCard } from '../components/KpiCard'
 import { PriorityBreakdown } from '../components/PriorityBreakdown'
 import { TicketsChart } from '../components/TicketsChart'
 import { api } from '../lib/api'
-import { formatHours } from '../lib/format'
+import { STATUS_LABEL } from '../lib/constants'
+import { formatHours, initials } from '../lib/format'
 import { messageOf } from '../lib/errors'
 import type { Stats } from '../lib/types'
 
@@ -42,7 +42,17 @@ export function DashboardPage() {
       </header>
 
       {error && <ErrorState message={error} onRetry={() => setAttempt((n) => n + 1)} />}
-      {!error && !stats && <Loading label="Loading the dashboard" />}
+      {!error && !stats && (
+        <Loading label="Loading the dashboard">
+          <div className="kpi-row">
+            {[0, 1, 2, 3].map((index) => (
+              <section key={index} className="card">
+                <SkeletonLines count={3} />
+              </section>
+            ))}
+          </div>
+        </Loading>
+      )}
 
       {stats && (
         <div className="dashboard">
@@ -72,13 +82,10 @@ export function DashboardPage() {
           </div>
 
           <div className="dashboard-grid">
-            <div className="span-2">
-              <section className="card">
-                <TicketsChart days={stats.daily} />
-              </section>
-            </div>
+            <section className="card span-2">
+              <TicketsChart days={stats.daily} />
+            </section>
             <PriorityBreakdown counts={stats.byPriority} />
-            <CsatCard />
 
             <div className="span-2">
               <CsatPanel />
@@ -96,8 +103,8 @@ export function DashboardPage() {
                     const top = stats.topAgents[0].resolved
                     return (
                       <li key={agent.id}>
-                        <span className="avatar" aria-hidden="true">
-                          {agent.name.charAt(0)}
+                        <span className="avatar small" aria-hidden="true">
+                          {initials(agent.name)}
                         </span>
                         <span className="leader-name">{agent.name}</span>
                         <span className="bar-track" aria-hidden="true">
@@ -111,14 +118,14 @@ export function DashboardPage() {
               )}
             </section>
 
-            <section className="card" aria-labelledby="status-title">
+            <section className="card span-3" aria-labelledby="status-title">
               <h2 id="status-title" className="card-title">
                 Tickets by status
               </h2>
-              <dl className="status-list">
+              <dl className="status-tiles">
                 {(Object.keys(stats.byStatus) as (keyof Stats['byStatus'])[]).map((status) => (
                   <div key={status}>
-                    <dt className="muted">{status.replace('_', ' ')}</dt>
+                    <dt>{STATUS_LABEL[status]}</dt>
                     <dd>{stats.byStatus[status]}</dd>
                   </div>
                 ))}
